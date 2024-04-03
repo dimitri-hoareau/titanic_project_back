@@ -5,6 +5,7 @@ import schemas
 import pandas as pd
 from sqlalchemy.orm import Session
 from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from typing import List
@@ -14,6 +15,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"], 
+)
 db_password = os.getenv("DATABASE_PASSWORD")
 engine = create_engine(f'postgresql://dimitri:{db_password}@localhost/titanic')
 df = pd.read_csv('train.csv')
