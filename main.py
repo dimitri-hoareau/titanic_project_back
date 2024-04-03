@@ -1,16 +1,41 @@
-import pandas as pd
-from sqlalchemy import create_engine
-from dotenv import load_dotenv
+
 import os
+import models
+import schemas
+import pandas as pd
+from sqlalchemy.orm import Session
+from fastapi import FastAPI, Depends
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from typing import List
+from dotenv import load_dotenv
+
+
 
 load_dotenv()
-
+app = FastAPI()
 db_password = os.getenv("DATABASE_PASSWORD")
-
+engine = create_engine(f'postgresql://dimitri:{db_password}@localhost/titanic')
 df = pd.read_csv('train.csv')
 
-print(db_password)
+try:
+    df.to_sql('passengers', con=engine, index=False, if_exists='fail')
+    print("Data are successfully loaded in the database.")
+except ValueError as e:
+    print("Data are already loaded in the database.")
 
-engine = create_engine(f'postgresql://dimitri:{db_password}@localhost/titanic')
 
-df.to_sql('passengers', con=engine, index=False, if_exists='replace')
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.get("/passengers/", response_model=List[schemas.Passenger])
+def read_passengers(skip: int = 0, db: Session = Depends(get_db)):
+    passengers = db.query(models.Passenger).offset(skip)
+    return passengers
+
+
